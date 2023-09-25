@@ -1,44 +1,48 @@
 import json
 
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
-import datetime
+from channels.generic.websocket import AsyncWebsocketConsumer
 
-class ChatConsumer(WebsocketConsumer):
-    # websocket建立连接时执行方法
-    def connect(self):
-        # 从url里获取聊天室名字，为每个房间建立一个频道组
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = "chat_%s" % self.room_name
 
-        # 将当前频道加入频道组
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name, self.channel_name
+#等同于django的views.py
+#对于channels叫consumers.py
+#下面的内容作用：将新的ws客户端加入到一个频道，将其发送到ws服务端的内容广播至频道所有人
+class ChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        # Join room group
+        await self.channel_layer.group_add(
+            'chat',
+            self.channel_name
         )
-        # 接受所有websocket请求
-        self.accept()
-    # websocket断开时执行方法
-    def disconnect(self, close_code):
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
         # Leave room group
-        async_to_sync(self.channel_layer.group_discard)(
-            self.room_group_name, self.channel_name
+        await self.channel_layer.group_discard(
+            'chat',
+            self.channel_name
         )
 
     # Receive message from WebSocket
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
-
+    async def receive(self, text_data):
+        message = text_data
+        # await self.send(text_data=json.dumps(text_data))
         # Send message to room group
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, {"type": "chat_message", "message": message}
+        await self.channel_layer.group_send(
+            'chat',
+            {
+                'type': 'chat_message',
+                'message': message
+            }
         )
 
     # Receive message from room group
-    def chat_message(self, event):
-        message = event["message"]
-        datetime_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    async def chat_message(self, event):
+        message = event['message']
+        
         # Send message to WebSocket
-        self.send(text_data=json.dumps({
-             'message': f'{datetime_str}:{message}'
+        await self.send(text_data=json.dumps({
+            'message': message
         }))
+

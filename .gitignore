@@ -9,3 +9,6 @@ chat/__pycache__/consumers.cpython-37.pyc
 chat/__pycache__/routing.cpython-37.pyc
 chat/__pycache__/urls.cpython-37.pyc
 chat/__pycache__/views.cpython-37.pyc
+api/__pycache__/__init__.cpython-37.pyc
+api/__pycache__/urls.cpython-37.pyc
+api/__pycache__/views.cpython-37.pyc
